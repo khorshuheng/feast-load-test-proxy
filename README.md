@@ -1,6 +1,6 @@
 # Feast Load Test Proxy
 
-This is simple Go service generates load as part of the Feast testing suite. It sits between an HTTP based load testing tool as follows:
+This simple Go service generates load as part of the Feast testing suite. It sits between an HTTP based load testing tool as follows:
 
 ```
 [Load Testing Tool] --(http)--> [Feast Load Test Proxy] --(grpc)--> [Feast Serving]
