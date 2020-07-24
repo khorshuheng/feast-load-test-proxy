@@ -26,11 +26,11 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
+	log.Printf("Creating client to connect to Feast Serving at %s:%d", c.FeastServingHost, c.FeastServingPort)
 	client, err := feast.NewGrpcClient(c.FeastServingHost, c.FeastServingPort)
 	if err != nil {
 		log.Fatalf("Could not connect to: %v", err)
 	}
-
 
 	http.HandleFunc("/send", func(w http.ResponseWriter, r *http.Request) {
 		entityCountParam := r.URL.Query().Get("entity_count")
@@ -63,8 +63,7 @@ func main() {
 		w.WriteHeader(200)
 	})
 
-	log.Printf("Starting server on port: %s\n", c.ListenPort)
-
+	log.Printf("Starting server on port %s\n", c.ListenPort)
 	err = http.ListenAndServe(":"+c.ListenPort, nil)
 	if err != nil {
 		log.Fatalf("could not start server")
