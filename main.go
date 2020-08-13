@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
-	feast "github.com/feast-dev/feast/sdk/go"
-	"github.com/feast-dev/feast/sdk/go/protos/feast/serving"
-	"github.com/feast-dev/feast/sdk/go/protos/feast/types"
-	"github.com/kelseyhightower/envconfig"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	feast "github.com/feast-dev/feast/sdk/go"
+	"github.com/feast-dev/feast/sdk/go/protos/feast/serving"
+	"github.com/feast-dev/feast/sdk/go/protos/feast/types"
+	"github.com/kelseyhightower/envconfig"
 )
 
 type Config struct {
