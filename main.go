@@ -13,9 +13,9 @@ import (
 )
 
 type Config struct {
-	FeastServingHost string `default:"localhost"`
-	FeastServingPort int    `default:"6566"`
-	ListenPort       string `default:"8080"`
+	FeastServingHost string `default:"localhost" split_words:"true"`
+	FeastServingPort int    `default:"6566" split_words:"true"`
+	ListenPort       string `default:"8080" split_words:"true"`
 }
 
 func main() {
