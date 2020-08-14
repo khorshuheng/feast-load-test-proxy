@@ -2,20 +2,21 @@ package main
 
 import (
 	"context"
-	feast "github.com/feast-dev/feast/sdk/go"
-	"github.com/feast-dev/feast/sdk/go/protos/feast/serving"
-	"github.com/feast-dev/feast/sdk/go/protos/feast/types"
-	"github.com/kelseyhightower/envconfig"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	feast "github.com/feast-dev/feast/sdk/go"
+	"github.com/feast-dev/feast/sdk/go/protos/feast/serving"
+	"github.com/feast-dev/feast/sdk/go/protos/feast/types"
+	"github.com/kelseyhightower/envconfig"
 )
 
 type Config struct {
-	FeastServingHost string `default:"localhost"`
-	FeastServingPort int    `default:"6566"`
-	ListenPort       string `default:"8080"`
+	FeastServingHost string `default:"localhost" split_words:"true"`
+	FeastServingPort int    `default:"6566" split_words:"true"`
+	ListenPort       string `default:"8080" split_words:"true"`
 }
 
 func main() {
