@@ -17,6 +17,7 @@ type Config struct {
 	FeastServingHost string `default:"localhost" split_words:"true"`
 	FeastServingPort int    `default:"6566" split_words:"true"`
 	ListenPort       string `default:"8080" split_words:"true"`
+	ProjectName      string `default:"default" split_words:"true"`
 }
 
 func main() {
@@ -39,7 +40,7 @@ func main() {
 			log.Fatal("Url parameter 'entity_count' is missing. Please specify the entity count in order to generate the appropriate load")
 		}
 		entityCount, err := strconv.Atoi(entityCountParam)
-		request := buildRequest(entityCount)
+		request := buildRequest(entityCount, c.ProjectName)
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
@@ -71,7 +72,7 @@ func main() {
 	}
 }
 
-func buildRequest(entityRowCount int) feast.OnlineFeaturesRequest {
+func buildRequest(entityRowCount int, projectName string) feast.OnlineFeaturesRequest {
 	var entityRows []feast.Row
 
 	for i := 0; i <= entityRowCount; i++ {
@@ -99,6 +100,7 @@ func buildRequest(entityRowCount int) feast.OnlineFeaturesRequest {
 		},
 		Entities:     entityRows,
 		OmitEntities: false,
+		Project: projectName,
 	}
 	return request
 }
