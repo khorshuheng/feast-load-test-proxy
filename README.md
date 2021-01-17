@@ -7,6 +7,11 @@ This simple Go service generates load as part of the Feast testing suite. It sit
 ```
 
 ### Usage
+Create a specification file for the load. Refer to the example specification for details.
+```
+LOAD_SPECIFICATION_PATH=example/loadSpec.yml
+```
+
 Start the proxy
 ```
 LOAD_FEAST_SERVING_HOST=feast.serving.example.com LOAD_FEAST_SERVING_PORT=6566 go run main.go
@@ -21,8 +26,8 @@ The following command simply echos the version of Feast Serving. Useful for test
 curl localhost:8080/echo
 ```
 
-This command will send a single GetOnlineFeatures request to the configured Feast serving instance. The `entity_count` parameter is used to set how many entities will be sent (unique users in this case). The higher the number of entities the higher the expected latency.
+This command will send a single or multiple GetOnlineFeatures request(s) depending on the load specification.
 
 ```
-curl localhost:8080/send?entity_count=30
+curl localhost:8080/send
 ```
