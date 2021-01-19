@@ -59,10 +59,11 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		if len(requests) == 1 {
-			_, err := client.GetOnlineFeatures(ctx, &requests[0])
+			resp, err := client.GetOnlineFeatures(ctx, &requests[0])
 			if err != nil {
 				log.Fatalf("%v", err)
 			}
+			postProcessResponse(resp)
 			w.WriteHeader(200)
 		} else {
 			var wg sync.WaitGroup
@@ -75,10 +76,11 @@ func main() {
 				request := request
 				go func() {
 					defer wg.Done()
-					_, err := client.GetOnlineFeatures(ctx, &request)
+					resp, err := client.GetOnlineFeatures(ctx, &request)
 					if err != nil {
 						fatalErrors <- err
 					}
+					postProcessResponse(resp)
 				}()
 			}
 
@@ -117,6 +119,14 @@ func main() {
 	err = http.ListenAndServe(":"+c.ListenPort, nil)
 	if err != nil {
 		log.Fatalf("could not start server")
+	}
+}
+
+func postProcessResponse(resp *feast.OnlineFeaturesResponse) {
+	for _, fieldValue := range resp.RawResponse.FieldValues {
+		for _, field := range fieldValue.Fields {
+			field.GetVal()
+		}
 	}
 }
 
