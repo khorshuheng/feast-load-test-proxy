@@ -1,0 +1,49 @@
+# Define the requested entities
+entities:
+  # Entity name
+  - name: "merchant_id"
+    # Type of entity. Supported types: int64, int32, float, double, bool, string
+    type: "int64"
+    # Generate values from file
+    fileSource:
+      # Path to a file that contains the possible values of the entity. The number of
+      # lines must be greater than the entity count for the request.
+      path: "example/restaurant_id.txt"
+  - name: "customer_id"
+    type: "int64"
+    # Applicable only for integer type entities, and if a source file is not defined.
+    # The entity value will be generated randomly based on the min and max values (inclusive).
+    randInt:
+      min: 1
+      max: 100
+
+
+# Each entry defines a request that would be send when the /send endpoint is called.
+# If they are multiple requests, each request will be sent within a goroutine, and the call
+# will return when all requests succesfully receive a response.
+requests:
+  # Entity(s) that corresponds to the features to be retrieved
+  - entities:
+      - "customer_id"
+    # Retrieved features
+    features:
+      - "merchant_orders:lifetime_avg_basket_size"
+      - "merchant_orders:weekday_completed_order"
+      - "merchant_orders:weekend_completed_order"
+    # Number of entities in the request. The entity value are chosen randomly from the source
+    # file defined above.
+    entityCount: 5
+  - entities:
+      - "merchant_id"
+    features:
+      - "customer_orders:cust_total_orders_3months"
+      - "customer_orders:cust_orders_uniq_restaurants_3months"
+    entityCount: 5
+
+  - entities:
+      - "customer_id"
+      - "merchant_id"
+    features:
+      - "merchant_customer_orders:days_since_last_order"
+      - "merchant_customer_orders:int_order_count_90days"
+    entityCount: 5

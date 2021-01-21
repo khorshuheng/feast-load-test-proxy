@@ -2,22 +2,26 @@ package main
 
 import (
 	"context"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
+	"sync"
 	"time"
+
+	"feast-load-generator/generator"
 
 	feast "github.com/feast-dev/feast/sdk/go"
 	"github.com/feast-dev/feast/sdk/go/protos/feast/serving"
-	"github.com/feast-dev/feast/sdk/go/protos/feast/types"
 	"github.com/kelseyhightower/envconfig"
 )
 
 type Config struct {
-	FeastServingHost string `default:"localhost" split_words:"true"`
-	FeastServingPort int    `default:"6566" split_words:"true"`
-	ListenPort       string `default:"8080" split_words:"true"`
-	ProjectName      string `default:"default" split_words:"true"`
+	FeastServingHost 	string `default:"localhost" split_words:"true"`
+	FeastServingPort 	int    `default:"6566" split_words:"true"`
+	ListenPort       	string `default:"8080" split_words:"true"`
+	ProjectName      	string `default:"default" split_words:"true"`
+	SpecificationPath 	string `default:"loadSpec.yml" split_words:"true"`
 }
 
 func main() {
@@ -34,24 +38,70 @@ func main() {
 		log.Fatalf("Could not connect to: %v", err)
 	}
 
+	log.Printf("Loading specification at %s", c.SpecificationPath)
+	yamlSpec, err := ioutil.ReadFile(c.SpecificationPath)
+    if err != nil {
+        log.Fatalf("Error reading specification file at %s", err)
+    }
+    loadSpec := generator.LoadSpec{}
+    err = yaml.Unmarshal(yamlSpec, &loadSpec)
+    if err != nil {
+        log.Fatalf("Unmarshal: %v", err)
+    }
+	requestGenerator, err := generator.NewRequestGenerator(loadSpec, c.ProjectName)
+	if err != nil {
+		log.Fatalf("Unable to instantiate request requestGenerator: %v", err)
+	}
+
 	http.HandleFunc("/send", func(w http.ResponseWriter, r *http.Request) {
-		entityCountParam := r.URL.Query().Get("entity_count")
-		if len(entityCountParam) < 1 {
-			log.Fatal("Url parameter 'entity_count' is missing. Please specify the entity count in order to generate the appropriate load")
-		}
-		entityCount, err := strconv.Atoi(entityCountParam)
-		request := buildRequest(entityCount, c.ProjectName)
+		requests := requestGenerator.GenerateRequests()
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		values, err := client.GetOnlineFeatures(ctx, &request)
-		if err != nil {
-			log.Fatalf("%v", err)
+		if len(requests) == 1 {
+			resp, err := client.GetOnlineFeatures(ctx, &requests[0])
+			if err != nil {
+				log.Fatalf("%v", err)
+			}
+			postProcessResponse(resp)
+			w.WriteHeader(200)
+		} else {
+			var wg sync.WaitGroup
+			wg.Add(len(requests))
+
+			fatalErrors := make(chan error)
+			wgDone := make(chan bool)
+
+			for _, request := range requests {
+				request := request
+				go func() {
+					defer wg.Done()
+					resp, err := client.GetOnlineFeatures(ctx, &request)
+					if err != nil {
+						fatalErrors <- err
+					}
+					postProcessResponse(resp)
+				}()
+			}
+
+			go func() {
+				wg.Wait()
+				close(wgDone)
+			}()
+
+			select {
+			case <-wgDone:
+				close(fatalErrors)
+				break
+			case err := <-fatalErrors:
+				close(fatalErrors)
+				log.Fatalf("%v", err)
+
+			}
+
+			w.WriteHeader(200)
 		}
-		if values.RawResponse.FieldValues[0].Fields["float_feature"].GetFloatVal() != 0.1 {
-			log.Fatal("Hardcoded float value of 0.1 was not found in response for feature \"float_feature\", please make sure the correct values have been ingested.")
-		}
-		w.WriteHeader(200)
+
 	})
 
 	http.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
@@ -72,35 +122,11 @@ func main() {
 	}
 }
 
-func buildRequest(entityRowCount int, projectName string) feast.OnlineFeaturesRequest {
-	var entityRows []feast.Row
-
-	for i := 0; i <= entityRowCount; i++ {
-		row := make(map[string]*types.Value)
-		val := feast.Int64Val(int64(1000 + i))
-		row["user_id"] = val
-		entityRows = append(entityRows, row)
+func postProcessResponse(resp *feast.OnlineFeaturesResponse) {
+	for _, fieldValue := range resp.RawResponse.FieldValues {
+		for _, field := range fieldValue.Fields {
+			field.GetVal()
+		}
 	}
-
-	request := feast.OnlineFeaturesRequest{
-		Features: []string{
-			"int32_feature",
-			"int64_feature",
-			"float_feature",
-			"double_feature",
-			"string_feature",
-			"bytes_feature",
-			"bool_feature",
-			"int32_list_feature",
-			"int64_list_feature",
-			"float_list_feature",
-			"double_list_feature",
-			"string_list_feature",
-			"bytes_list_feature",
-		},
-		Entities:     entityRows,
-		OmitEntities: false,
-		Project: projectName,
-	}
-	return request
 }
+
