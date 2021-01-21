@@ -5,6 +5,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"sync"
 	"time"
@@ -52,12 +53,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to instantiate request requestGenerator: %v", err)
 	}
+	requestsPool := make([][]feast.OnlineFeaturesRequest, 100)
+	for i := 0; i < 100; i++ {
+		requestsPool[i] = requestGenerator.GenerateRequests()
+	}
 
 	http.HandleFunc("/send", func(w http.ResponseWriter, r *http.Request) {
-		requests := requestGenerator.GenerateRequests()
-
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
+		requests := requestsPool[rand.Intn(len(requestsPool))]
 		if len(requests) == 1 {
 			resp, err := client.GetOnlineFeatures(ctx, &requests[0])
 			if err != nil {
