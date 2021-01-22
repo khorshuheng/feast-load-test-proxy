@@ -59,7 +59,7 @@ func main() {
 	}
 
 	http.HandleFunc("/send", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 60 * time.Second)
 		defer cancel()
 		requests := requestsPool[rand.Intn(len(requestsPool))]
 		if len(requests) == 1 {
@@ -109,7 +109,7 @@ func main() {
 	})
 
 	http.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 60 * time.Second)
 		defer cancel()
 		var req serving.GetFeastServingInfoRequest
 		_, err := client.GetFeastServingInfo(ctx, &req)
@@ -133,4 +133,3 @@ func postProcessResponse(resp *feast.OnlineFeaturesResponse) {
 		}
 	}
 }
-
