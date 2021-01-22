@@ -65,16 +65,18 @@ func main() {
 		if len(requests) == 1 {
 			resp, err := client.GetOnlineFeatures(ctx, &requests[0])
 			if err != nil {
-				log.Fatalf("%v", err)
+				w.WriteHeader(500)
+			} else {
+				postProcessResponse(resp)
+				w.WriteHeader(200)
 			}
-			postProcessResponse(resp)
-			w.WriteHeader(200)
 		} else {
 			var wg sync.WaitGroup
 			wg.Add(len(requests))
 
 			fatalErrors := make(chan error)
 			wgDone := make(chan bool)
+			atLeastOneError := false
 
 			for _, request := range requests {
 				request := request
@@ -97,13 +99,15 @@ func main() {
 			case <-wgDone:
 				close(fatalErrors)
 				break
-			case err := <-fatalErrors:
-				close(fatalErrors)
-				log.Fatalf("%v", err)
-
+			case <-fatalErrors:
+				atLeastOneError = true
 			}
 
-			w.WriteHeader(200)
+			if atLeastOneError {
+				w.WriteHeader(500)
+			} else {
+				w.WriteHeader(200)
+			}
 		}
 
 	})
